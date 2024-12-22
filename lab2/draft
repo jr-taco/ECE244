@@ -1,0 +1,657 @@
+//
+//  main.cpp
+//  Lab 3 The Resistor Network Program
+//
+//  Created by Nathan Hung on 2024-09-11.
+//  Modified by Salma Emara on 2024-09-30
+//
+//  Permission is hereby granted to use this code in ECE244 at
+//  the University of Toronto. It is prohibited to distribute
+//  this code, either publicly or to third parties.
+//
+//  ECE244 Student: Complete the skeletal code of the main function in this file
+
+/*
+#include <iomanip>
+#include <iostream>
+#include <sstream>
+#include <string>
+
+#include "Node.h"
+#include "Resistor.h"
+
+using namespace std;
+
+Resistor** resistors =
+    nullptr;  // Pointer that should point to an array of Resistor pointers
+Node* nodes = nullptr;  // pointer that should hold address to an array of Nodes
+int maxNodeNumber = 0;  // maximum number of nodes as set in the command line
+int maxResistors = 0;  // maximum number of resistors as set in the command line
+int resistorsCount = 0;  // count the number of resistors
+
+string errorArray[10] = {
+    "invalid command",                                        // 0
+    "invalid argument",                                       // 1
+    "negative resistance",                                    // 2
+    "node value is out of permitted range",                   // 3
+    "resistor name cannot be keyword \"all\"",                // 4
+    "both terminals of resistor connect to same node",        // 5
+    "too few arguments",                                      // 6
+    "resistor name not found",                                // 7
+    "node value is out of permitted range 1 - maxNodeNumber"  // 8
+};
+
+// Function Prototypes
+bool getInteger(stringstream& ss, int& x);
+bool getString(stringstream& ss, string& s);
+bool getDouble(stringstream& ss, double& s);
+
+void handleMaxVal(stringstream& ss);
+void handleInsertR(stringstream& ss);
+void handleModifyR(stringstream& ss);
+void handlePrintR(stringstream& ss);
+void handleDeleteR(stringstream& ss);
+void handleSetV(stringstream& ss);
+void printError(int error);
+Resistor* findResistor(const string& name);
+void deleteAllResistors();
+
+int main() {
+  string line;
+  stringstream ss;
+
+  // TODO: Implement the main function here
+  while (true) {
+   cout << ">>> ";
+    cout.flush();
+    getline(cin, line);
+
+    if (line.empty()) {
+        break; // Exit loop if input is empty
+    }
+
+    ss.str(line); // Set the stringstream to the input line
+    bool success = getString(ss, command); // Extract command from the
+stringstream
+
+    string command;
+    bool success = getString(ss, command);
+    if (!success) {
+      cout << "get command failed??? this thing should never happen!" << endl;
+      exit(2);
+    }
+    if (command == "maxVal") {
+      handleMaxVal(ss);
+    } else if (command == "insertR") {
+      handleInsertR(ss);
+    } else if (command == "modifyR") {
+      handleModifyR(ss);
+    } else if (command == "printR") {
+      handlePrintR(ss);
+    } else if (command == "deleteR") {
+      handleDeleteR(ss);
+    } else if (command == "setV") {
+      handleSetV(ss);
+    } else {
+      printError(0);
+    }
+  }
+
+  return 0;
+}
+
+// TODO: Implement functions here
+bool getInteger(stringstream& ss, int& x) {
+  // TODO: Extract an integer from the stringstream and assign it to 'x'.
+  // Check for validity of the input (e.g., fail state).
+  // Return true if valid, false otherwise.
+  if (ss.eof()) {  // 没有数字
+    printError(6);
+    return false;
+  }
+  ss >> x;
+  if (ss.fail()) {  // invalid
+    printError(1);
+    return false;
+  }
+  return true;
+}
+
+bool getString(stringstream& ss, string& s) {
+  // TODO: Extract a string from the stringstream and assign it to 's'.
+  // Ensure it's a valid input (no whitespace).
+  // Return true if valid, false otherwise.
+  if (ss.eof()) {  // 没有数字
+    printError(6);
+    return false;
+  }
+  ss >> s;
+  if (ss.fail()) {  // invalid
+    printError(1);
+    return false;
+  }
+  return true;
+}
+
+bool getDouble(stringstream& ss, double& s) {
+  // TODO: Extract a double from the stringstream and assign it to 's'.
+  // Ensure it's a valid floating-point number.
+  // Return true if valid, false otherwise.
+  if (ss.eof()) {  // 没有数字
+    printError(6);
+  }
+  ss >> s;
+  if (ss.fail()) {  // invalid
+    printError(1);
+    ss.clear();
+    return false;
+  }
+  return true;
+}
+
+void handleMaxVal(stringstream& ss) {
+  // TODO: Read max node number and max resistors from input.
+  // Allocate the appropriate arrays (using new[]).
+  // If this is not the first maxVal, delete previously allocated arrays.
+  // Initialize the network to the empty state.
+  int max_NodeNumber, max_Resistors;
+  if (!getInteger(ss, max_NodeNumber)) {  // 找最大节点数
+    return;
+  }
+  if (!getInteger(ss, max_Resistors)) {  // 找最大电阻数
+    return;
+  }
+  delete[] resistors;
+  for (int i = 0; i < max_Resistors; i++) {
+    delete resistors[i];
+  }
+
+  maxNodeNumber = max_NodeNumber;
+  maxResistors = max_Resistors;
+
+  nodes = new Node[maxNodeNumber];
+  resistors = new Resistor*[maxResistors];
+
+  for (int i = 0; i < maxResistors; i++) {
+    resistors[i] = nullptr;
+  }
+  resistorsCount=0;
+  cout << "New network: max node number = " << maxNodeNumber
+       << "; max resistors = " << maxResistors << endl;
+}
+
+void handleInsertR(stringstream& ss) {
+  // TODO: Parse input for resistor name, resistance, and the two node IDs.
+  // Check if the resistor already exists.
+  // Validate that the two node IDs are different and within the allowed range.
+  // If valid, insert the resistor and update the node connections.
+  // Print a success message.
+  string name;
+  double resistance;
+  int nodeID[2];
+
+  // check if too many resistors
+  if (resistorsCount >= maxResistors) {
+    printError(8);
+    return;
+  }
+  // check valid resistor
+  if (!getString(ss, name)) {
+    return;
+  }
+  if (name == "all") {
+    printError(4);
+    return;
+  }
+  if (!getDouble(ss, resistance)) {
+    return;
+  }
+  if (resistance < 0) {
+    printError(2);
+    return;
+  }
+
+  // check node
+  if(!getInteger(ss,nodeID[0])){
+    return;
+  }
+  if(!getInteger(ss,nodeID[1])){
+    return;
+  }
+
+  if (nodeID[0] == nodeID[1]) {
+    cout << "Error: " << errorArray[5] << endl;
+    return;
+  }
+  if (nodeID[0] < 1 || nodeID[0] > maxNodeNumber || nodeID[1] < 1 ||
+      nodeID[1] > maxNodeNumber) {
+    printError(3);
+    return;
+  }
+
+  // If valid, insert the resistor and update the node connections.
+  Resistor* resistor = new Resistor(name, resistance, nodeID);
+  resistors[resistorsCount] = resistor;
+  nodes[nodeID[0] - 1].addResistor(resistorsCount);
+  nodes[nodeID[1] - 1].addResistor(resistorsCount);
+  resistorsCount++;
+  cout << "Inserted: resistor " << name << " " << resistance << " Ohms "
+       << nodeID[0] << " -> " << nodeID[1] << endl;
+}
+
+void handleModifyR(stringstream& ss) {
+  // TODO: Parse input for resistor name and new resistance value.
+  // Check if the resistor exists.
+  // Modify the resistance value.
+  // Print a success message.
+  string r_name;
+  double newResistance;
+  if (!getString(ss, r_name)) {
+    return;
+  }
+  if (!getDouble(ss, newResistance)) {
+    return;
+  }
+
+  Resistor* targetR = findResistor(r_name);
+
+  if (targetR == nullptr) {
+    return;
+  }
+
+  cout << "Modified: resistor " << r_name << " from " <<
+targetR->getResistance() << " Ohms to " << newResistance << " Ohms" << endl;
+  targetR->setResistance(newResistance);
+}
+
+void handlePrintR(stringstream& ss) {
+  // TODO: Parse input for resistor name or the keyword "all".
+  // Print the details of the specified resistor or all resistors in the
+  // network. Format the output with setprecision(2) for resistance values.
+  string r_name;
+  double newResistance;
+  if (!getString(ss, r_name)) {
+    return;
+  }
+
+  Resistor* targetR = findResistor(r_name);
+  if (targetR == nullptr) {
+    return;
+  }
+
+  cout << "Print:" << endl;
+  targetR->print();
+}
+
+void handleDeleteR(stringstream& ss) {
+  // TODO: Parse input for resistor name or the keyword "all".
+  // If "all" is given, clear the entire network (remove all resistors).
+  // Otherwise, remove the specified resistor.
+  // Print a success message.
+  string r_name;
+  if (!getString(ss, r_name)) {
+    return;
+  }
+  if (r_name == "all") {
+    deleteAllResistors();
+    cout << "Deleted: all resistors" << endl;
+    return;
+  }
+
+  Resistor* targetR = findResistor(r_name);
+  if (targetR == nullptr) {
+    return;
+  }
+  delete targetR;
+  targetR = nullptr;
+
+
+}
+
+void handleSetV(stringstream& ss) {
+  // TODO: Parse input for node ID and voltage value.
+  // Validate that the node ID is within the allowed range.
+  // Set the voltage of the specified node.
+  // Print a success message.
+  int id;
+  double v;
+  if (!getInteger(ss, id)) {
+    return;
+  }
+  if (id < 1 || id > maxNodeNumber) {
+    printError(8);
+    return;
+  }
+  if (!getDouble(ss, v)) {
+    return;
+  }
+  cout << "Set: node " << id << " to " << v << " Volts" << endl;
+  id = id - 1;
+  nodes[id].setVoltage(v);
+}
+
+// own function
+void printError(int error) {
+  string message = errorArray[error];
+  cout << "Error: " << message << endl;
+}
+
+Resistor* findResistor(const string& name) {
+    for (int i = 0; i < resistorsCount; i++) {
+        if (resistors[i]->getName() == name) {
+            return resistors[i];  // Return the pointer to the resistor
+        }
+    }
+    printError(7);  // Resistor not found
+    return nullptr;  // Return nullptr if not found
+}
+
+void deleteAllResistors() {
+  for (int i = 0; i < resistorsCount; i++) {
+    delete resistors[i];
+    resistors[i] = nullptr;
+  }
+}
+*/
+
+#include <iomanip>
+#include <iostream>
+#include <sstream>
+#include <string>
+
+#include "Node.h"
+#include "Resistor.h"
+
+using namespace std;
+
+Resistor** resistors =
+    nullptr;  // Pointer that should point to an array of Resistor pointers
+Node* nodes = nullptr;  // pointer that should hold address to an array of Nodes
+int maxNodeNumber = 0;  // maximum number of nodes as set in the command line
+int maxResistors = 0;  // maximum number of resistors as set in the command line
+int resistorsCount = 0;  // count the number of resistors
+
+string errorArray[10] = {
+    "invalid command",                                        // 0
+    "invalid argument",                                       // 1
+    "negative resistance",                                    // 2
+    "node value is out of permitted range",                   // 3
+    "resistor name cannot be keyword \"all\"",                // 4
+    "both terminals of resistor connect to same node",        // 5
+    "too few arguments",                                      // 6
+    "resistor name not found",                                // 7
+    "node value is out of permitted range 1 - maxNodeNumber"  // 8
+};
+
+// Function Prototypes
+bool getInteger(stringstream& ss, int& x);
+bool getString(stringstream& ss, string& s);
+bool getDouble(stringstream& ss, double& s);
+
+void handleMaxVal(stringstream& ss);
+void handleInsertR(stringstream& ss);
+void handleModifyR(stringstream& ss);
+void handlePrintR(stringstream& ss);
+void handleDeleteR(stringstream& ss);
+void handleSetV(stringstream& ss);
+void printError(int error);
+Resistor* findResistor(const string& name);
+void deleteAllResistors();
+
+int main() {
+  string line;
+  stringstream ss;
+
+  while (true) {
+    cout << ">>> ";
+    cout.flush();
+    getline(cin, line);
+    if (line.empty()) {
+      break;  // Exit loop if input is empty
+    }
+
+    ss.clear();
+    ss.str(line);
+
+    string command;
+    if (!getString(ss, command)) {
+      continue;  // Skip to next iteration if command retrieval fails
+    }
+
+    if (command == "maxVal") {
+      handleMaxVal(ss);
+    } else if (command == "insertR") {
+      handleInsertR(ss);
+    } else if (command == "modifyR") {
+      handleModifyR(ss);
+    } else if (command == "printR") {
+      handlePrintR(ss);
+    } else if (command == "deleteR") {
+      handleDeleteR(ss);
+    } else if (command == "setV") {
+      handleSetV(ss);
+    } else {
+      printError(0);  // Invalid command
+    }
+  }
+
+  // Clean up resources before exiting
+  deleteAllResistors();
+  delete[] nodes;
+  delete[] resistors;
+
+  return 0;
+}
+
+// Implementation of helper functions
+bool getInteger(stringstream& ss, int& x) {
+  if (ss.eof()) {
+    printError(6);
+    return false;
+  }
+  ss >> x;
+  if (ss.fail()) {
+    printError(1);
+    return false;
+  }
+  return true;
+}
+
+bool getString(stringstream& ss, string& s) {
+  if (ss.eof()) {
+    printError(6);
+    return false;
+  }
+  ss >> s;
+  if (ss.fail()) {
+    printError(1);
+    return false;
+  }
+  return true;
+}
+
+bool getDouble(stringstream& ss, double& s) {
+  if (ss.eof()) {
+    printError(6);
+    return false;
+  }
+  ss >> s;
+  if (ss.fail()) {
+    printError(1);
+    ss.clear();
+    return false;
+  }
+  return true;
+}
+
+void handleMaxVal(stringstream& ss) {
+  int max_NodeNumber, max_Resistors;
+  if (!getInteger(ss, max_NodeNumber) || !getInteger(ss, max_Resistors)) {
+    return;
+  }
+
+  // Clean up previous arrays if they were allocated
+  delete[] nodes;
+  delete[] resistors;
+
+  maxNodeNumber = max_NodeNumber;
+  maxResistors = max_Resistors;
+
+  nodes = new Node[maxNodeNumber];
+  resistors = new Resistor*[maxResistors];
+
+  for (int i = 0; i < maxResistors; i++) {
+    resistors[i] = nullptr;
+  }
+  resistorsCount = 0;
+
+  cout << "New network: max node number is " << maxNodeNumber
+       << "; max resistors is " << maxResistors << endl;
+}
+
+void handleInsertR(stringstream& ss) {
+  if (resistorsCount >= maxResistors) {
+    printError(8);  // too many resistors
+    return;
+  }
+  string name;
+  double resistance;
+  int endpoints[2];
+  bool success = getString(ss, name);
+  if (!success) {
+    return;
+  }
+  if (name == "all") {
+    printError(4);  // resistor name cannot be "all"
+    return;
+  }
+  success = getDouble(ss, resistance);
+  if (!success) {
+    return;
+  }
+  if (resistance < 0.0) {
+    printError(2);  // negative resistance
+    return;
+  }
+  success = getInteger(ss, endpoints[0]);
+  if (!success) {
+    return;
+  }
+  success = getInteger(ss, endpoints[1]);
+  if (!success) {
+    return;
+  }
+  if (endpoints[0] == endpoints[1]) {
+    // raiseError(5);  // both terminals ... same
+    cout << "Error: both terminals of resistor connect to node " << endpoints[0]
+         << endl;
+    return;
+  }
+  if (endpoints[0] < 1 || endpoints[0] > maxNodeNumber || endpoints[1] < 1 ||
+      endpoints[1] > maxNodeNumber) {
+    printError(3);  // out of permitted range
+    return;
+  }
+
+  // Insert the resistor and update the node connections
+  Resistor* resistor = new Resistor(name, resistance, endpoints);
+  resistors[resistorsCount] = resistor;
+  nodes[endpoints[0] - 1].addResistor(resistorsCount);
+  nodes[endpoints[1] - 1].addResistor(resistorsCount);
+  resistorsCount++;
+
+  cout << "Inserted: resistor " << name << " " << resistance << " Ohms "
+       << endpoints[0] << " -> " << endpoints[1] << endl;
+}
+
+void handleModifyR(stringstream& ss) {
+  string r_name;
+  double newResistance;
+
+  if (!getString(ss, r_name) || !getDouble(ss, newResistance)) {
+    return;
+  }
+
+  Resistor* targetR = findResistor(r_name);
+  if (targetR == nullptr) {
+    return;
+  }
+
+  cout << "Modified: resistor " << r_name << " from "
+       << targetR->getResistance() << " Ohms to " << newResistance << " Ohms"
+       << endl;
+  targetR->setResistance(newResistance);
+}
+
+void handlePrintR(stringstream& ss) {
+  string r_name;
+
+  if (!getString(ss, r_name)) {
+    return;
+  }
+
+  Resistor* targetR = findResistor(r_name);
+  if (targetR == nullptr) {
+    return;
+  }
+  cout << "Print:" << endl;
+  targetR->print();
+}
+
+void handleDeleteR(stringstream& ss) {
+  string r_name;
+
+  if (!getString(ss, r_name)) {
+    return;
+  }
+
+  if (r_name == "all") {
+    deleteAllResistors();
+    cout << "Deleted: all resistors" << endl;
+    return;
+  }
+
+  Resistor* targetR = findResistor(r_name);
+  if (targetR == nullptr) {
+    return;
+  }
+
+  delete targetR;
+}
+
+void handleSetV(stringstream& ss) {
+  int id;
+  double v;
+
+  if (!getInteger(ss, id) || id < 1 || id > maxNodeNumber ||
+      !getDouble(ss, v)) {
+    return;
+  }
+
+  cout << "Set: node " << id << " to " << v << " Volts" << endl;
+  id = id - 1;
+  nodes[id].setVoltage(v);
+}
+
+void printError(int error) {
+  string message = errorArray[error];
+  cout << "Error: " << message << endl;
+}
+
+Resistor* findResistor(const string& name) {
+  for (int i = 0; i < resistorsCount; i++) {
+    if (resistors[i] && resistors[i]->getName() == name) {
+      return resistors[i];  // Return the pointer to the resistor
+    }
+  }
+  printError(7);   // Resistor not found
+  return nullptr;  // Return nullptr if not found
+}
+
+void deleteAllResistors() {
+  for (int i = 0; i < resistorsCount; i++) {
+    delete resistors[i];
+    resistors[i] = nullptr;
+  }
+  resistorsCount = 0;  // Reset count after deletion
+}
